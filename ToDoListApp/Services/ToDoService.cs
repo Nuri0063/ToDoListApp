@@ -1,96 +1,201 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using ToDoListApp.Models; //models dosyasını kullacağımız için kütüphanemize ekledik
+using System.Text.Json; //D
+using System.IO;       //D
+
 
 namespace ToDoListApp.Services
 {
-    public class ToDoService //işevleri koyacağım class yapısı
+    public class ToDoService 
     {
        
-        List<(int Id, string Title, DateTime CreatedDate, bool IsCompleted)> _todoItems = new List<(int, string, DateTime, bool)>(); //yeni öğrendiğin liste tanımlama yöntemi
+       // List<TodoItem> _todoItems = new (); //veri tipine sınıf koydum, değişkeni sınıf nesnesi olan bir liste oluşturdum
+        private List<TodoItem> _todoItems; //D
+        
+        private int nextID = 1;
+        private readonly string _filePath = "todo h5items.json"; //D
 
-        private int _nextID = 1;
-
-        TodoItem item = new TodoItem();                                         //TodoItem classından nesne oluşturdum ki içindeki değişkenleri kullanabileyim
-        public void AddTodoItem(string title)                                  //ekle metodum
+        public ToDoService(string listName)
         {
+            // Program başlarken dosyadan mevcut görevleri yükler.
+             _filePath = $"{listName}.json";
+            _todoItems = LoadTodoItemsFromFile();
+             nextID = _todoItems.Count > 0 ? _todoItems[^1].Id + 1 : 1;
+        }
+
+
+        TodoItem item = new TodoItem();                                    
+        public void AddTodoItem(string title)  //ekle metodu
+        {
+            TodoItem item = new TodoItem();
             Console.WriteLine();
-            item.Id = _nextID++;                                              //yukarda oluşturduğum item nesnesinden değişkenlerimi alıp girilen girdilere göre değiştiriyorum
-            item.Title = title;                            
+            item.Id = nextID++;                                              //yukarda oluşturduğum item nesnesinden değişkenlerimi alıp girilen girdilere göre değiştiriyorum
+            item.Title = title;                           
             item.CreatedDate = DateTime.Now;
             item.IsCompleted = false;
 
+            
+            _todoItems.Add(item);             //direkt nesne tipinden listeye ekleme gerçekleştiriyorum
+           
+            SaveTodoItemsToFile();//D
 
-            _todoItems.Add((item.Id,title,item.CreatedDate,item.IsCompleted));
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
 
-            Console.WriteLine("------------------------");
-            foreach (object i in _todoItems)                             
+
+            
+            foreach (TodoItem i in _todoItems) 
             {
-                Console.WriteLine(i);
-                
+                Console.WriteLine("            "   +     i.Id+" NUMARALI GÖREV               "                    );
+                Console.WriteLine("ID------------------>"+i.Id);
+                Console.WriteLine("Başlık-------------->" + i.Title);
+                Console.WriteLine("Tarih--------------->" + i.CreatedDate);
+                Console.WriteLine("Tamamlanma Durumu--->"+i.IsCompleted);
+                Console.WriteLine();
+
             }
-            Console.WriteLine("------------------------");
+            Console.WriteLine("--------------------------------------");
 
-            /* 
-            var todoItem = new TodoItem
-            {
-                ID = _nextID++,
-                Title = title,
-                CreatedDate = DateTime.Now,
-                IsCompleted = false
-
-
-            };
-            _todoItems.Add(todoItem);
-            */
+           
 
         }
 
         public void UpdateTodoItem(int id,string title,bool isCompleted,DateTime newDate) //güncelleme metodu
         {
+            TodoItem item = new TodoItem();
 
-            
-            var index = _todoItems.FindIndex(item => item.Id == id);
+           TodoItem? foundItem = _todoItems.Find(item => item.Id == id);   //verdiğin ID deki listeyi bulup foundItem e atar *************
 
-            if(index!= -1)
+
+            if (foundItem != null)
             {
-                var tempIndex = _todoItems[index];
-                _todoItems[index] = ( tempIndex.Id,title,tempIndex.CreatedDate,isCompleted);
-
+                foundItem.Title = title;
+                foundItem.IsCompleted=isCompleted;
                 
             }
             else
-               Console.WriteLine();
- 
-           
-                //item.Title = title; //niye burdalar
-                //item.IsCompleted = isCompleted;
-            foreach (var item in _todoItems)
             {
-                Console.WriteLine(item);
+                Console.WriteLine("liste boş..");
+            }
+
+            foreach (TodoItem i in _todoItems)
+            {
+                Console.WriteLine();
+                Console.WriteLine("            " + i.Id + " NUMARALI GÖREV               ");
+                Console.WriteLine("ID------------------>" + i.Id);
+                Console.WriteLine("Başlık-------------->" + i.Title);
+                Console.WriteLine("Tarih--------------->" + i.CreatedDate);
+                Console.WriteLine("Tamamlanma Durumu--->" + i.IsCompleted);
+                Console.WriteLine();
+
+            }
+    
+           
+
+        }
+
+        public void DeleteToDoItem(int id)       //silme metodu
+
+        {
+            
+            int index=_todoItems.FindIndex(item=>item.Id==id);
+            if (index > -1) {
+                _todoItems.RemoveAt(index);
+            }
+            
+            Console.WriteLine("------------------------");
+            foreach (TodoItem i in _todoItems)
+            {
+                Console.WriteLine("            " + i.Id + " NUMARALI GÖREV               ");
+                Console.WriteLine("ID------------------>" + i.Id);
+                Console.WriteLine("Başlık-------------->" + i.Title);
+                Console.WriteLine("Tarih--------------->" + i.CreatedDate);
+                Console.WriteLine("Tamamlanma Durumu--->" + i.IsCompleted);
+                Console.WriteLine();
+
+            }
+            Console.WriteLine("------------------------");
+
+
+        }
+
+        public void IsCompleced(int id,bool x)
+        {
+            TodoItem item=new TodoItem();
+            var found = _todoItems.Find(i => i.Id == id);
+            if (found != null) 
+            {
+                found.IsCompleted = x;
+            }
+            else
+                Console.WriteLine("geçerli ID no giriniz");
+
+
+            foreach (TodoItem i in _todoItems)
+            {
+                Console.WriteLine();
+                Console.WriteLine("            " + i.Id + " NUMARALI GÖREV               ");
+                Console.WriteLine("ID------------------>" + i.Id);
+                Console.WriteLine("Başlık-------------->" + i.Title);
+                Console.WriteLine("Tarih--------------->" + i.CreatedDate);
+                Console.WriteLine("Tamamlanma Durumu--->" + i.IsCompleted);
+                Console.WriteLine();
 
             }
 
-        }
-
-        public void DeleteToDoItem(int id)  //foreach ile liste üzerinde gezerken id yi bulup o idle eşleşen liste yapısını silmeyi hedefledin..
-
+        } //tamamlanma durumu güncelleme
+        
+        public void YAZ() //yazdırma metodu
         {
-            var index=_todoItems.FindIndex(item=>item.Id == id);
-            
-            //foreach (object i in _todoItems)
-            //{
-               
-                
-            //        _todoItems.RemoveAt(id);
-                
+            foreach (TodoItem item in _todoItems)
+            {
+                Console.WriteLine("ID------------------>" + item.Id);
+                Console.WriteLine("Başlık-------------->" + item.Title);
+                Console.WriteLine("Tarih--------------->" + item.CreatedDate);
+                Console.WriteLine("Tamamlanma Durumu--->" + item.IsCompleted);
 
-            //}
-
+            }
         }
 
+        public List<TodoItem> GetAllTodoItems()
+        {
+            return new List<TodoItem>(_todoItems);
+        }
+
+        private void SaveTodoItemsToFile()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_todoItems, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_filePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving to file: {ex.Message}");
+            }
+        }
+
+        private List<TodoItem> LoadTodoItemsFromFile()
+        {
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    var json = File.ReadAllText(_filePath);
+                    return JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading from file: {ex.Message}");
+            }
+
+            return new List<TodoItem>();
+        }
     }
 }
